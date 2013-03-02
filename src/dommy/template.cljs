@@ -109,7 +109,7 @@
   number
   (-elem [this] (.createTextNode js/document (str this)))
 
-  js/String
+  string
   (-elem [this]
          (if (keyword? this)
            (base-element this)

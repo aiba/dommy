@@ -129,3 +129,10 @@
                                           (when (even? i)
                                             [:li i]))]))))
 
+(deftemplate span-wrapper [content]
+  [:span content])
+
+(deftest empty-string-in-template
+  (is= "<span></span>"
+       (.-outerHTML (span-wrapper ""))))
+
