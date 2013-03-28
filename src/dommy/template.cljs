@@ -16,7 +16,7 @@
   (when v 
     (case k
       :class (doseq [c (.split v " ")]
-               (when (< 0 (.-length c))
+               (when (pos? (.-length c))
                  (dommy/add-class! node c)))
       :classes (doseq [c v] (dommy/add-class! node c))
       :style (.setAttribute node (name k) (style-str v))
