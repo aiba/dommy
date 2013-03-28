@@ -1,4 +1,4 @@
-(defproject prismatic/dommy "0.0.3-SNAPSHOT"
+(defproject org.clojars.aaroniba/dommy "aiba-6"
   :description "No nonsense Clojurescript dom templating and manipulation"
   :url "https://github.com/prismatic/dommy"
   :license {:name "Eclipse Public License"
