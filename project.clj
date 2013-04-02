@@ -1,4 +1,4 @@
-(defproject org.clojars.aaroniba/dommy "aiba-6"
+(defproject org.clojars.aaroniba/dommy "aiba-7"
   :clojurescript? true
   :description "No nonsense Clojurescript dom templating and (soon) manipulation"
   :url "https://github.com/prismatic/dommy"
