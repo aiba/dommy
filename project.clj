@@ -1,5 +1,5 @@
 (defproject org.clojars.aaroniba/dommy "aiba-6"
-  :description "No nonsense Clojurescript dom templating and manipulation"
+  :description "No nonsense Clojurescript dom templating and (soon) manipulation"
   :url "https://github.com/prismatic/dommy"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
@@ -10,19 +10,18 @@
                               [:email "admin+oss@getprismatic.com"]
                               [:timezone "-8"]]]
   :plugins [[lein-cljsbuild "0.3.0"]]
-  :clojurescript? true
-  :dependencies [[crate "0.2.3" :scope "dev"] ;; for perf test
-                 [prismatic/cljs-test "0.0.2"]] 
   :hooks [leiningen.cljsbuild]
-  :cljsbuild 
-    {:builds 
+  :dependencies [[crate "0.2.3" :scope "dev"] ;; for perf test
+                 [prismatic/cljs-test "0.0.5"]]
+  :cljsbuild
+    {:builds
      {:dev  {:source-paths ["src"]
              :compiler {:output-to "target/main.js"
                         :optimizations :whitespace
                         :pretty-print true}}
-      :test {:source-paths ["test"]
+      :test {:source-paths ["src" "test"]
+             :incremental? true
              :compiler {:output-to "target/unit-test.js"
                         :optimizations :whitespace
                         :pretty-print true}}}
-     :test-commands {"unit" ["phantomjs" "target/unit-test.js" "resources/test.html"]}}
-)
+     :test-commands {"unit" ["phantomjs" "target/unit-test.js" "resources/test.html"]}})

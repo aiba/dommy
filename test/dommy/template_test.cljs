@@ -1,8 +1,10 @@
 (ns dommy.template-test
-  (:require [dommy.template :as template])
-  (:require-macros [dommy.template-compile :as template-compile])
-  (:use-macros [dommy.template-compile :only [deftemplate]]
-               [cljs-test.core :only [is is= deftest]]))
+  (:use-macros
+   [cljs-test.macros :only [is is= deftest]]
+   [dommy.macros :only [deftemplate node]])
+  (:require
+   [cljs-test.core :as test]
+   [dommy.template :as template]))
 
 
 (deftest simple-template 
@@ -11,34 +13,38 @@
   ;; unfortunately to satisfy the macro gods, you need to
   ;; duplicate the vector literal to test compiled and runtime template
   (let [e1 (template/node [:span "some text"])
-        e2 (template-compile/node [:span "some text"])]
+        e2 (node [:span "some text"])]
     (doseq [e [e1 e2]]
       (is= "SPAN" (.-tagName e))
       (is= "some text" (.-textContent e))
       (is= js/document.TEXT_NODE (-> e .-childNodes (aget 0) .-nodeType))
       (is (zero? (-> e .-children .-length)))))
   (let [e1 (template/node [:a {:classes ["class1" "class2"] :href "http://somelink"} "anchor"])
-        e2 (template-compile/node
+        e2 (node
               [:a {:classes ["class1" "class2"] :href "http://somelink"} "anchor"])]
     (doseq [e [e1 e2]] (is (-> e .-tagName (= "A")))
            (is= "anchor" (.-textContent e))
            (is= "http://somelink" (.getAttribute e "href"))
            (is= "class1 class2" (.-className e))))
   (let [e1 (template/base-element :div#id.class1.class2)
-        e2 (template-compile/node :div#id.class1.class2)]
+        e2 (node :div#id.class1.class2)]
     (doseq [e [e1 e2]]
       (is= "DIV" (.-tagName e))
       (is= "id" (.getAttribute e "id"))
       (is= "class1 class2" (.-className e))))
+  (let [e1 (template/node [:div#id {:class "class1 class2"}])
+        e2 (node [:div#id {:class "class1 class2"}])]
+    (doseq [e [e1 e2]]
+      (is (= "class1 class2" (.-className e)))))
   (let [e1 (template/compound-element [:div {:style {:margin-left "15px"}}])
-        e2 (template-compile/node [:div {:style {:margin-left "15px"}}])]
+        e2 (node [:div {:style {:margin-left "15px"}}])]
     (doseq [e [e1 e2]]
       (is= "DIV" (.-tagName e))
       (is= "margin-left:15px;" (.getAttribute e "style"))))
   (let [e (template/compound-element [:div (interpose [:br] (repeat 3 "test"))])]
     (is (-> e .-outerHTML (= "<div>test<br>test<br>test</div>"))))
   (let [e1 (template/compound-element [:div.class1 [:span#id1 "span1"] [:span#id2 "span2"]])
-        e2 (template-compile/node [:div.class1 [:span#id1 "span1"] [:span#id2 "span2"]])]
+        e2 (node [:div.class1 [:span#id1 "span1"] [:span#id2 "span2"]])]
     (doseq [e [e1 e2]]
       (is= "span1span2" (.-textContent e))
       (is= "class1" (.-className e))
@@ -56,7 +62,7 @@
     (is= "<p>some-text</p>" (.-innerHTML e))
     (is=  e (template/node e)))
   (let [e1 (template/base-element :#id1.class1)
-        e2 (template-compile/node :#id1.class1)]
+        e2 (node :#id1.class1)]
     (doseq [e [e1 e2]]      
       (is= (.-outerHTML (template/base-element :div#id1.class1))
            (.-outerHTML (template/base-element :#id1.class1))))))
@@ -96,23 +102,22 @@
 
 (deftest boolean 
   (let [e1 (template/node [:option {:selected true} "some text"])
-        e1c (template-compile/node [:option {:selected true} "some text"]) 
+        e1c (node [:option {:selected true} "some text"]) 
         e2 (template/node [:option {:selected false} "some text"])
-        e2c (template-compile/node [:option {:selected false} "some text"])
+        e2c (node [:option {:selected false} "some text"])
         e3 (template/node [:option {:selected nil} "some text"])
-        e3c (template-compile/node [:option {:selected nil} "some text"])]
+        e3c (node [:option {:selected nil} "some text"])]
     (doseq [e [e1 e1c]] (is (-> e (.getAttribute "selected") (= "true"))))
     (doseq [e [e2 e2c]] (is (-> e (.getAttribute "selected") (nil?))))
     (doseq [e [e3 e3c]] (is (-> e (.getAttribute "selected") (nil?))))))
 
 
 (deftemplate simple-template [[href anchor]]
-    [:a.anchor {:href href} ^:text anchor])
+  [:a.anchor {:href href} ^:text anchor])
 
 (deftest  deftemplate
   (is= "<a class=\"anchor\" href=\"http://somelink.html\">some-text</a>"
        (.-outerHTML (simple-template ["http://somelink.html" "some-text"]))))
-
 
 (deftemplate nested-template [n]
   [:ul.class1 (for [i (range n)] [:li i])])
@@ -121,6 +126,39 @@
   (is= "<ul class=\"class1\"><li>0</li><li>1</li><li>2</li><li>3</li><li>4</li></ul>"
        (.-outerHTML (nested-template 5))))
 
+
+(deftemplate compound-template []
+  [:span "foo"]
+  [:span "bar"])
+
+(deftest compound-template-test
+  (let [frag (compound-template)]
+    (is= 2 (-> frag .-childNodes .-length))
+    (is= "<span>foo</span>" (-> frag .-firstChild .-outerHTML))
+    (is= "<span>bar</span>" (-> frag .-lastChild .-outerHTML))))
+
+(deftemplate single-template-expression []
+  (for [s ["foo" "bar"]] [:span s]))
+
+(deftest single-template-expression-test
+  (let [frag (single-template-expression)]
+    (is= 2 (-> frag .-childNodes .-length))
+    (is= "<span>foo</span>" (-> frag .-firstChild .-outerHTML))
+    (is= "<span>bar</span>" (-> frag .-lastChild .-outerHTML))))
+
+(deftemplate compound-template-expressions []
+  (for [s ["foo" "bar"]] [:span s])
+  [:span "wtf"])
+
+(deftest compound-template-expressions-test
+  (let [frag (compound-template-expressions)]
+    (is= 3 (-> frag .-childNodes .-length))
+    (is= "<span>foo</span>" (-> frag .-firstChild .-outerHTML))
+    (is= "<span>wtf</span>" (-> frag .-lastChild .-outerHTML))))
+
+(deftemplate nil-template []
+  nil)
+
 (deftest nil-in-template
   (is= "<span></span>"
        (.-outerHTML (template/node [:span nil])))
@@ -128,6 +166,16 @@
        (.-outerHTML (template/node [:ul (for [i (range 3)]
                                           (when (even? i)
                                             [:li i]))]))))
+(deftest nil-template-test
+  (is= 0 (-> (nil-template) .-childNodes .-length)))
+
+(deftest ->node-like  
+  (is=
+   "<div><div class=\"class1\"></div><div class=\"class2\"></div><div class=\"class3\"></div></div>"
+   (.-outerHTML
+    (doto (template/node [:div])
+      (.appendChild 
+       (template/->node-like (list :.class1 :.class2 :.class3)))))))
 
 (deftemplate span-wrapper [content]
   [:span content])

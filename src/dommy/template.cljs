@@ -1,26 +1,10 @@
 (ns dommy.template
-  (:require [clojure.string :as str]
-            [dommy.core :as dommy]))
+  (:require
+   [clojure.string :as str]
+   [dommy.attrs :as attrs]))
 
 (defprotocol PElement
   (-elem [this] "return the element representation of this"))
-
-(defn style-str [m]
-  (->> m
-       (map (fn [[k v]] (str (name k) ":" (name v) ";")))
-       (str/join " ")))
-
-(defn add-attr! 
-  "can have a seq for :classes key or a map for :style"
-  [node k v]
-  (when v 
-    (case k
-      :class (doseq [c (.split v " ")]
-               (when (pos? (.-length c))
-                 (dommy/add-class! node c)))
-      :classes (doseq [c v] (dommy/add-class! node c))
-      :style (.setAttribute node (name k) (style-str v))
-      (.setAttribute node (name k) v))))
 
 (defn next-css-index [s start-idx]
   "index of css character (#,.) in base-element. bottleneck"
@@ -48,28 +32,26 @@
                      (.substring str 0 next-idx)
                      str)]
           (case (.charAt frag 0)
-            \. (dommy/add-class! node (.substring frag 1))
+            \. (attrs/add-class! node (.substring frag 1))
             \# (.setAttribute node "id" (.substring frag 1)))
           (when (>= next-idx 0)
             (recur (.substring str next-idx))))))
     node))
 
-(declare node)
-
 (defn throw-unable-to-make-node [node-data]
   (throw (str "Don't know how to make node from: " (pr-str node-data))))
- 
+
 (defn ->document-fragment
   "take data and return a document fragment"
   ([data]
      (->document-fragment (.createDocumentFragment js/document) data))
   ([result-frag data]
-      (cond 
-       (satisfies? PElement data) 
+      (cond
+       (satisfies? PElement data)
        (do (.appendChild result-frag (-elem data))
            result-frag)
-       
-       (seq? data) 
+
+       (seq? data)
        (do (doseq [child data] (->document-fragment result-frag child))
            result-frag)
        
@@ -89,12 +71,17 @@
 
 (defn compound-element
   "element with either attrs or nested children [:div [:span \"Hello\"]]"
-  [data]
-  (let [n (base-element (first data))
-        attrs     (when (map? (second data)) (second data))
-        children  (drop (if attrs 2 1) data)]
+  [[tag-name maybe-attrs & children]]
+  (let [n (base-element tag-name)
+        attrs     (when (and (map? maybe-attrs)
+                             (not (satisfies? PElement maybe-attrs)))
+                    maybe-attrs)
+        children  (if attrs children (cons maybe-attrs children))]
     (doseq [[k v] attrs]
-      (add-attr! n k v))
+      (case k
+        :class (attrs/add-class! n v)
+        :classes (doseq [c v] (attrs/add-class! n c))
+        (attrs/set-attr! n k v)))
     (.appendChild n (->node-like children))
     n))
 
@@ -102,11 +89,20 @@
   js/HTMLElement
   (-elem [this] this)
 
-  PersistentVector
-  (-elem [this] (compound-element this))
+  js/DocumentFragment
+  (-elem [this] this)
 
   js/Text
   (-elem [this] this)
+
+  js/HTMLDocument
+  (-elem [this] this)
+
+  js/Window
+  (-elem [this] this)
+
+  PersistentVector
+  (-elem [this] (compound-element this))
 
   number
   (-elem [this] (.createTextNode js/document (str this)))
