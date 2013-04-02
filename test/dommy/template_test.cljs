@@ -183,4 +183,3 @@
 (deftest empty-string-in-template
   (is= "<span></span>"
        (.-outerHTML (span-wrapper ""))))
-

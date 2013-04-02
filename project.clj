@@ -1,4 +1,5 @@
 (defproject org.clojars.aaroniba/dommy "aiba-6"
+  :clojurescript? true
   :description "No nonsense Clojurescript dom templating and (soon) manipulation"
   :url "https://github.com/prismatic/dommy"
   :license {:name "Eclipse Public License"
