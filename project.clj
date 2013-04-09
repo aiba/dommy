@@ -1,4 +1,4 @@
-(defproject org.clojars.aaroniba/dommy "aiba-7"
+(defproject org.clojars.aaroniba/dommy "aiba-8"
   :clojurescript? true
   :description "No nonsense Clojurescript dom templating and (soon) manipulation"
   :url "https://github.com/prismatic/dommy"
@@ -26,3 +26,4 @@
                         :optimizations :whitespace
                         :pretty-print true}}}
      :test-commands {"unit" ["phantomjs" "target/unit-test.js" "resources/test.html"]}})
+
